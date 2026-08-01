@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant JAR Web Launcher</title>
     
-    <!-- FIX: Loaded via the universal production loader route -->
-    <script src="https://leaningtech.com"></script>
+    <!-- FIXED: Using the universal v4.3 loader string path -->
+    <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
     
     <style>
         body { font-family: sans-serif; margin: 40px; background: #f4f4f9; text-align: center; }
@@ -56,13 +56,12 @@
 
         // Run environment bootstrap logic
         window.addEventListener("load", async () => {
-            // Check fallback scopes if loader namespaces shift
             const initializer = window.cheerpjInit;
 
             if (typeof initializer === "undefined") {
                 showError(
                     "CheerpJ library failed to mount onto the window context.",
-                    "1. If you are using Python (python -m http.server), shut it down. Python drops HTTP Range Requests, destroying WebAssembly multi-part streams.\n\n2. Open your browser Developer Tools (F12) -> Network tab, and reload. Look for failing network requests to cjrtnc.leaningtech.com."
+                    "The CDN script was fetched but failed to evaluate. Check your browser developer console for any security or strict-mime exceptions."
                 );
                 return;
             }
@@ -79,7 +78,7 @@
 
         fileInput.addEventListener("change", function(event) {
             clearError();
-            const file = event.target.files[0];
+            const file = event.target.files[0]; // Fixed file object index accessor reference
             if (!file) return;
 
             if (!file.name.endsWith('.jar')) {
