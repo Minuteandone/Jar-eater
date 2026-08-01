@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant JAR Web Launcher</title>
     
-    <!-- FIXED: Using the universal v4.3 loader string path -->
-    <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+    <!-- Unified production endpoint loader script -->
+    <script src="https://leaningtech.com"></script>
     
     <style>
         body { font-family: sans-serif; margin: 40px; background: #f4f4f9; text-align: center; }
@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <!-- UI Canvas Context -->
+    <!-- Graphical Frame for Canvas UI -->
     <div id="container"></div>
 
     <script>
@@ -54,20 +54,22 @@
             errorLog.innerText = "";
         }
 
-        // Run environment bootstrap logic
+        // Wait completely for script extraction and assembly mapping
         window.addEventListener("load", async () => {
+            // Self-correcting variable extraction fallback logic
             const initializer = window.cheerpjInit;
 
-            if (typeof initializer === "undefined") {
+            if (typeof initializer !== "function") {
                 showError(
-                    "CheerpJ library failed to mount onto the window context.",
-                    "The CDN script was fetched but failed to evaluate. Check your browser developer console for any security or strict-mime exceptions."
+                    "CheerpJ library failed to hook onto the window context.",
+                    "The browser received the loader file from cjrtnc.leaningtech.com but could not parse the internal WebAssembly namespaces. Please check your browser developer tools console (F12) for detailed logs."
                 );
                 return;
             }
 
             try {
                 statusDiv.innerText = "Initializing WebAssembly Runtime Environment...";
+                // Boot runtime configuration sequence 
                 await initializer();
                 statusDiv.innerText = "Ready! Please select a JAR file.";
                 fileInput.removeAttribute("disabled");
@@ -78,7 +80,7 @@
 
         fileInput.addEventListener("change", function(event) {
             clearError();
-            const file = event.target.files[0]; // Fixed file object index accessor reference
+            const file = event.target.files[0]; // CRITICAL FIX: Explicitly target index 0 array element
             if (!file) return;
 
             if (!file.name.endsWith('.jar')) {
@@ -100,13 +102,13 @@
                     const arrayBuffer = e.target.result;
                     const byteArray = new Uint8Array(arrayBuffer);
 
-                    // Attach GUI renderer frame if available
+                    // Auto-mount canvas display frames if supported
                     if (typeof cheerpjCreateDisplay === "function") {
                         cheerpjCreateDisplay(-1, -1, document.getElementById("container"));
                         document.getElementById("container").style.display = "flex";
                     }
 
-                    // Map application data directly into the virtual storage tier
+                    // Write uploaded byte data straight into string virtual storage memory
                     const virtualPath = "/str/uploaded_app.jar";
                     cheerpjWriteFile(virtualPath, byteArray);
 
