@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant JAR Web Launcher</title>
+    
+    <!-- FIX: Loaded via the universal production loader route -->
+    <script src="https://leaningtech.com"></script>
+    
+    <style>
+        body { font-family: sans-serif; margin: 40px; background: #f4f4f9; text-align: center; }
+        .upload-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; max-width: 500px; width: 100%; }
+        #status { margin-top: 15px; font-weight: bold; color: #555; }
+        #container { margin-top: 30px; display: none; display: flex; justify-content: center; min-height: 400px; border: 1px dashed #ccc; background: #fff; }
+        .error-box { display: none; background: #ffebeb; color: #b71c1c; border: 1px solid #ffcdd2; border-radius: 6px; padding: 15px; margin-top: 20px; text-align: left; }
+        .error-box h3 { margin: 0 0 10px 0; font-size: 16px; }
+        .error-box pre { background: #f5f5f5; padding: 10px; border-radius: 4px; border: 1px solid #e0e0e0; font-family: monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="upload-container">
+        <h2>Java WebAssembly JAR Launcher</h2>
+        <p>Select a local `.jar` file to run it completely client-side.</p>
+        <input type="file" id="jarFile" accept=".jar" disabled />
+        <div id="status">Verifying runtime setup...</div>
+
+        <div id="errorDisplay" class="error-box">
+            <h3>⚠️ Execution Error</h3>
+            <pre id="errorLog"></pre>
+        </div>
+    </div>
+
+    <!-- UI Canvas Context -->
+    <div id="container"></div>
+
+    <script>
+        const statusDiv = document.getElementById("status");
+        const errorDisplay = document.getElementById("errorDisplay");
+        const errorLog = document.getElementById("errorLog");
+        const fileInput = document.getElementById("jarFile");
+
+        function showError(message, technicalDetails = "") {
+            statusDiv.innerText = "Execution failed.";
+            statusDiv.style.color = "#b71c1c";
+            errorDisplay.style.display = "block";
+            errorLog.innerText = message + (technicalDetails ? `\n\n[Details]:\n${technicalDetails}` : "");
+        }
+
+        function clearError() {
+            statusDiv.style.color = "#555";
+            errorDisplay.style.display = "none";
+            errorLog.innerText = "";
+        }
+
+        // Run environment bootstrap logic
+        window.addEventListener("load", async () => {
+            // Check fallback scopes if loader namespaces shift
+            const initializer = window.cheerpjInit;
+
+            if (typeof initializer === "undefined") {
+                showError(
+                    "CheerpJ library failed to mount onto the window context.",
+                    "1. If you are using Python (python -m http.server), shut it down. Python drops HTTP Range Requests, destroying WebAssembly multi-part streams.\n\n2. Open your browser Developer Tools (F12) -> Network tab, and reload. Look for failing network requests to cjrtnc.leaningtech.com."
+                );
+                return;
+            }
+
+            try {
+                statusDiv.innerText = "Initializing WebAssembly Runtime Environment...";
+                await initializer();
+                statusDiv.innerText = "Ready! Please select a JAR file.";
+                fileInput.removeAttribute("disabled");
+            } catch (err) {
+                showError("Initialization failed inside the WebAssembly sandbox.", err.message);
+            }
+        });
+
+        fileInput.addEventListener("change", function(event) {
+            clearError();
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.jar')) {
+                showError("Invalid file type. Please select a valid Java archive (.jar) file.");
+                return;
+            }
+
+            statusDiv.innerText = "Reading file into browser memory...";
+            const reader = new FileReader();
+            
+            reader.onerror = function() {
+                showError("Failed to read the local file from disk.");
+            };
+
+            reader.onload = async function(e) {
+                try {
+                    statusDiv.innerText = "Booting Java Virtual Machine...";
+                    
+                    const arrayBuffer = e.target.result;
+                    const byteArray = new Uint8Array(arrayBuffer);
+
+                    // Attach GUI renderer frame if available
+                    if (typeof cheerpjCreateDisplay === "function") {
+                        cheerpjCreateDisplay(-1, -1, document.getElementById("container"));
+                        document.getElementById("container").style.display = "flex";
+                    }
+
+                    // Map application data directly into the virtual storage tier
+                    const virtualPath = "/str/uploaded_app.jar";
+                    cheerpjWriteFile(virtualPath, byteArray);
+
+                    statusDiv.innerText = "Running Application...";
+                    await cheerpjRunJar(virtualPath);
+                    
+                } catch (error) {
+                    console.error(error);
+                    showError("An error occurred while launching the JAR file.", error.message);
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
